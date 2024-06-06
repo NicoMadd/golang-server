@@ -3,8 +3,8 @@ package network
 import (
 	"bufio"
 	"fmt"
+	"golang-server/util"
 	"net"
-	"server/util"
 	"strconv"
 	"strings"
 )

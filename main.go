@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"server/network"
+	"golang-server/network"
 )
 
 func main() {
