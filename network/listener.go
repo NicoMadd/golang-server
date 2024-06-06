@@ -2,7 +2,9 @@ package network
 
 import (
 	"fmt"
+	"golang-server/util"
 	"net"
+	"time"
 )
 
 const (
@@ -16,13 +18,9 @@ type Listener struct {
 	reqCounter     int64
 }
 
-func (l *Listener) HandleRequest(conn net.Conn) {
+func (l *Listener) handleRequest(conn net.Conn) {
 	request, err := InitRequest(conn, l.reqCounter)
 	l.reqCounter++
-
-	if l.reqCounter%1000 == 0 {
-		fmt.Println("Request counter: ", l.reqCounter)
-	}
 
 	if err != nil {
 		fmt.Println(err)
@@ -45,11 +43,7 @@ func (l *Listener) StartListening() {
 		return
 	}
 
-	reqCounter := 0
-
 	for {
-		fmt.Println("listening...", reqCounter)
-		reqCounter++
 
 		conn, err := listener.Accept()
 
@@ -58,6 +52,19 @@ func (l *Listener) StartListening() {
 			return
 		}
 
-		go l.HandleRequest(conn)
+		go l.handleRequest(conn)
+	}
+}
+
+func (l *Listener) status() string {
+	return fmt.Sprintf("Listener { port: %d, reqCounter: %d }", l.port, l.reqCounter)
+}
+
+func (l *Listener) Monitor() string {
+	for {
+		time.Sleep(250 * time.Millisecond)
+		util.ClearConsole()
+		fmt.Println(l.status())
+
 	}
 }
