@@ -16,7 +16,7 @@ type Listener struct {
 	reqCounter     int64
 }
 
-func (l *Listener) HandleRequest(conn net.Conn) {
+func (l *Listener) handleRequest(conn net.Conn) {
 	request, err := InitRequest(conn, l.reqCounter)
 	l.reqCounter++
 
@@ -58,6 +58,6 @@ func (l *Listener) StartListening() {
 			return
 		}
 
-		go l.HandleRequest(conn)
+		go l.handleRequest(conn)
 	}
 }
