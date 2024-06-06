@@ -11,6 +11,8 @@ import (
 
 type HTTPVersion string
 
+type Path string
+
 const (
 	HTTP_0_9 HTTPVersion = "HTTP/0.9"
 	HTTP_1_0 HTTPVersion = "HTTP/1.0"
@@ -33,12 +35,13 @@ const (
 type Request struct {
 	id          int64
 	method      HTTPMethod
-	path        string
+	path        Path
 	httpVersion HTTPVersion
 	headers     map[string]string
 	size        int32
 	body        []byte
 	connection  net.Conn
+	reader      *bufio.Reader
 }
 
 func InitRequest(conn net.Conn, counter int64) (Request, error) {
@@ -49,19 +52,31 @@ func InitRequest(conn net.Conn, counter int64) (Request, error) {
 		size:        -1,
 		body:        nil,
 		connection:  conn,
+		reader:      nil,
 	}, nil
+}
+
+func (r *Request) OpenReader() error {
+	r.reader = bufio.NewReader(r.connection)
+	return nil
 }
 
 func (r *Request) StartLine() string {
 	return fmt.Sprintf("%s %s %s", r.method, r.path, r.httpVersion)
 }
 
-func (r *Request) parseStartLine(reader *bufio.Reader) error {
-	readString, _ := reader.ReadString(util.LF)
+func (r *Request) ParseStartLine() error {
+
+	if r.httpVersion != "" {
+		// already parsed
+		return nil
+	}
+
+	readString, _ := r.reader.ReadString(util.LF)
 	split_values := strings.Split(readString[:len(readString)-2], " ")
 
 	r.method = HTTPMethod(split_values[0])
-	r.path = split_values[1]
+	r.path = Path(split_values[1])
 	r.httpVersion = HTTPVersion(split_values[2])
 
 	return nil
@@ -71,9 +86,9 @@ func (r *Request) Headers() string {
 	return fmt.Sprintf("%s", r.headers)
 }
 
-func (r *Request) parseHeaders(reader *bufio.Reader) error {
+func (r *Request) ParseHeaders() error {
 	for {
-		readString, _ := reader.ReadString(util.LF)
+		readString, _ := r.reader.ReadString(util.LF)
 		if readString == "\r\n" {
 			break
 		}
@@ -103,7 +118,7 @@ func (r *Request) BodyAsString() string {
 	return string(r.body)
 }
 
-func (r *Request) parseBody(reader *bufio.Reader) error {
+func (r *Request) ParseBody() error {
 
 	// read content length size from body
 	if r.size == -1 {
@@ -111,7 +126,7 @@ func (r *Request) parseBody(reader *bufio.Reader) error {
 	}
 
 	r.body = make([]byte, r.size)
-	_, err := reader.Read(r.body)
+	_, err := r.reader.Read(r.body)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -122,13 +137,11 @@ func (r *Request) parseBody(reader *bufio.Reader) error {
 
 func (r *Request) ParseRequest() error {
 
-	reader := bufio.NewReader(r.connection)
+	_ = r.ParseStartLine()
 
-	_ = r.parseStartLine(reader)
+	_ = r.ParseHeaders()
 
-	_ = r.parseHeaders(reader)
-
-	_ = r.parseBody(reader)
+	_ = r.ParseBody()
 
 	return nil
 
