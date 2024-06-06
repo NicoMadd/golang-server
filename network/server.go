@@ -38,6 +38,9 @@ func (s *Server) Start() error {
 	// start listener thread
 	go s.listener.StartListening()
 
+	// start listener monitor
+	go s.listener.Monitor()
+
 	<-killerChannel
 	return nil
 }
