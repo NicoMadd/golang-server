@@ -5,6 +5,20 @@ import (
 	"golang-server/network"
 )
 
+func setupRoutes(server *network.Server) {
+	fmt.Println("Setting up routes...")
+
+	server.Get("/hello", func(request network.Request, response *network.Response) {
+
+		response.SetReasonPhrase("asd")
+
+	})
+
+	server.Post("/hello", func(request network.Request, response *network.Response) {
+		fmt.Println("Hello, world")
+	})
+}
+
 func main() {
 
 	fmt.Println("Initializing...")
@@ -21,6 +35,8 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	setupRoutes(server)
 
 	err = server.Start()
 

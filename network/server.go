@@ -16,15 +16,12 @@ type Server struct {
 	queue    chan Request
 	workers  []Worker
 	listener Listener
+	routes   *RoutesMap
 }
 
 func (s *Server) String() string {
 	// who all variables
 	return fmt.Sprintf("Server { port: %d, queueSize: %d, workersSize: %v }", s.listener.port, cap(s.queue), len(s.workers))
-}
-
-func (s *Server) startListener() {
-	go s.listener.StartListening()
 }
 
 func (s *Server) Start() error {
@@ -34,12 +31,12 @@ func (s *Server) Start() error {
 
 	// init workers
 	for i := 0; i < maxWorkers; i++ {
-		worker := Init(s.queue)
+		worker := Init(s.queue, s.routes)
 		s.workers = append(s.workers, worker)
 	}
 
 	// start listener thread
-	s.startListener()
+	go s.listener.StartListening()
 
 	<-killerChannel
 	return nil
@@ -58,7 +55,7 @@ func InitHttpServer(port int16, workers_size int, request_buffer int) (*Server, 
 	server := Server{
 		queue:   requestsQueue,
 		workers: workers,
-		// routes:  make(RoutesMap),
+		routes:  new(RoutesMap),
 		listener: Listener{
 			port:           port,
 			requestChannel: requestsQueue,
@@ -67,4 +64,28 @@ func InitHttpServer(port int16, workers_size int, request_buffer int) (*Server, 
 
 	return &server, nil
 
+}
+
+func (s *Server) Get(path Path, handler Handler) {
+	s.routes.AddHandler("GET", path, handler)
+}
+
+func (s *Server) Post(path Path, handler Handler) {
+	s.routes.AddHandler("POST", path, handler)
+}
+
+func (s *Server) Put(path Path, handler Handler) {
+	s.routes.AddHandler("PUT", path, handler)
+}
+
+func (s *Server) Delete(path Path, handler Handler) {
+	s.routes.AddHandler("DELETE", path, handler)
+}
+
+func (s *Server) Head(path Path, handler Handler) {
+	s.routes.AddHandler("HEAD", path, handler)
+}
+
+func (s *Server) Options(path Path, handler Handler) {
+	s.routes.AddHandler("OPTIONS", path, handler)
 }
